@@ -24,7 +24,7 @@ class User:
     """This class will contain the information about the PSN ID you passed in when creating object"""
 
     @classmethod
-    def from_online_id(cls, request_builder: RequestBuilder, online_id: str) -> User:
+    async def from_online_id(cls, request_builder: RequestBuilder, online_id: str) -> User:
         """Creates the User instance from online ID and returns the instance.
 
         :param request_builder: Used to call http requests.
@@ -40,7 +40,7 @@ class User:
         """
         try:
             query = {"fields": "accountId,onlineId,currentOnlineId"}
-            response: dict[str, Any] = request_builder.get(
+            response: dict[str, Any] = await request_builder.get(
                 url=f"{BASE_PATH['legacy_profile_uri']}{API_PATH['legacy_profile'].format(online_id=online_id)}",
                 params=query,
             ).json()
@@ -51,7 +51,7 @@ class User:
             raise PSNAWPNotFound(f"Online ID {online_id} does not exist.") from not_found
 
     @classmethod
-    def from_account_id(cls, request_builder: RequestBuilder, account_id: str) -> User:
+    async def from_account_id(cls, request_builder: RequestBuilder, account_id: str) -> User:
         """Creates the User instance from account ID and returns the instance.
 
         :param request_builder: Used to call http requests.
@@ -66,7 +66,7 @@ class User:
 
         """
         try:
-            response: dict[str, Any] = request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['profiles'].format(account_id=account_id)}").json()
+            response: dict[str, Any] = await request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['profiles'].format(account_id=account_id)}").json()
             return cls(request_builder, response["onlineId"], account_id)
         except PSNAWPBadRequest as bad_request:
             raise PSNAWPNotFound(f"Account ID {account_id} does not exist.") from bad_request
@@ -100,7 +100,7 @@ class User:
         self.account_id = account_id
         self.prev_online_id = online_id
 
-    def profile(self) -> dict[str, Any]:
+    async def profile(self) -> dict[str, Any]:
         """Gets the profile of the user such as about me, avatars, languages etc...
 
         :returns: A dict containing info similar to what is shown below:
@@ -117,10 +117,10 @@ class User:
 
         """
 
-        response: dict[str, Any] = self._request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['profiles'].format(account_id=self.account_id)}").json()
+        response: dict[str, Any] = await self._request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['profiles'].format(account_id=self.account_id)}").json()
         return response
 
-    def get_presence(self) -> dict[str, Any]:
+    async def get_presence(self) -> dict[str, Any]:
         """Gets the presences of a user. If the profile is private
 
         :returns: A dict containing info similar to what is shown below:
@@ -140,7 +140,7 @@ class User:
         """
         try:
             params = {"type": "primary"}
-            response: dict[str, Any] = self._request_builder.get(
+            response: dict[str, Any] = await self._request_builder.get(
                 url=f"{BASE_PATH['profile_uri']}/{self.account_id}{API_PATH['basic_presences']}",
                 params=params,
             ).json()
@@ -148,7 +148,7 @@ class User:
         except PSNAWPForbidden as forbidden:
             raise PSNAWPForbidden(f"You are not allowed to check the presence of user {self.online_id}") from forbidden
 
-    def friendship(self) -> dict[str, Any]:
+    async def friendship(self) -> dict[str, Any]:
         """Gets the friendship status and stats of the user
 
         :returns: A dict containing info similar to what is shown below
@@ -164,12 +164,12 @@ class User:
             print(user_example.friendship())
 
         """
-        response: dict[Any, Any] = self._request_builder.get(
+        response: dict[Any, Any] = await self._request_builder.get(
             url=f"{BASE_PATH['profile_uri']}{API_PATH['friends_summary'].format(account_id=self.account_id)}"
         ).json()
         return response
 
-    def is_blocked(self) -> bool:
+    async def is_blocked(self) -> bool:
         """Checks if the user is blocked by you
 
         :returns: True if the user is blocked otherwise False
@@ -181,7 +181,7 @@ class User:
             print(user_example.is_blocked())
 
         """
-        response = self._request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['blocked_users']}").json()
+        response = await self._request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['blocked_users']}").json()
         return self.account_id in response["blockList"]
 
     def trophy_summary(self) -> TrophySummary:

@@ -34,7 +34,7 @@ class Client:
         self._request_builder = request_builder
 
     @property
-    def online_id(self) -> str:
+    async def online_id(self) -> str:
         """Gets the online ID of the client logged in the api.
 
         :returns: onlineID
@@ -46,12 +46,12 @@ class Client:
             print(client.online_id)
 
         """
-        response = self._request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['profiles'].format(account_id=self.account_id)}").json()
+        response = await self._request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['profiles'].format(account_id=self.account_id)}").json()
         online_id: str = response["onlineId"]
         return online_id
 
     @property
-    def account_id(self) -> str:
+    async def account_id(self) -> str:
         """Gets the account ID of the client logged in the api.
 
         :returns: accountID
@@ -63,11 +63,11 @@ class Client:
             print(client.account_id)
 
         """
-        response = self._request_builder.get(url=f"{BASE_PATH['account_uri']}{API_PATH['my_account']}").json()
+        response = await self._request_builder.get(url=f"{BASE_PATH['account_uri']}{API_PATH['my_account']}").json()
         account_id: str = response["accountId"]
         return account_id
 
-    def get_profile_legacy(self) -> dict[str, Any]:
+    async def get_profile_legacy(self) -> dict[str, Any]:
         """Gets the profile info from legacy api endpoint. Useful for legacy console (PS3, PS4) presence.
 
         :returns: A dict containing info similar to what is shown below:
@@ -90,14 +90,14 @@ class Client:
             "following,consoleAvailability"
         }
 
-        response: dict[str, Any] = self._request_builder.get(
+        response: dict[str, Any] = await self._request_builder.get(
             url=f"{BASE_PATH['legacy_profile_uri']}{API_PATH['legacy_profile'].format(online_id=self.online_id)}",
             params=params,
         ).json()
 
         return response
 
-    def get_account_devices(self) -> list[dict[str, Any]]:
+    async def get_account_devices(self) -> list[dict[str, Any]]:
         """Gets the list of devices the client is logged into.
 
         :returns: A dict containing info similar to what is shown below:
@@ -117,13 +117,13 @@ class Client:
             "includeFields": "device,systemData",
             "platform": "PS5,PS4,PS3,PSVita",
         }
-        response = self._request_builder.get(url=f"{BASE_PATH['account_uri']}{API_PATH['my_account']}", params=params).json()
+        response = await self._request_builder.get(url=f"{BASE_PATH['account_uri']}{API_PATH['my_account']}", params=params).json()
 
         # Just so mypy doesn't complain
-        account_devices: list[dict[str, Any]] = response.get("accountDevices", [])
+        account_devices: list[dict[str, Any]] = await response.get("accountDevices", [])
         return account_devices
 
-    def friends_list(self, limit: int = 1000) -> Iterator[User]:
+    async def friends_list(self, limit: int = 1000) -> Iterator[User]:
         """Gets the friends list and return their account ids.
 
         :param limit: The number of items from input max is 1000.
@@ -144,7 +144,7 @@ class Client:
         limit = min(1000, limit)
 
         params = {"limit": limit}
-        response = self._request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['friends_list']}", params=params).json()
+        response = await self._request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['friends_list']}", params=params).json()
         return (
             User.from_account_id(
                 request_builder=self._request_builder,
@@ -153,7 +153,7 @@ class Client:
             for account_id in response["friends"]
         )
 
-    def available_to_play(self) -> Iterator[User]:
+    async def available_to_play(self) -> Iterator[User]:
         """Gets the list of users on your "Notify when available" subscription list.
 
         :returns: Iterator of user objects.
@@ -168,7 +168,7 @@ class Client:
                 ...
 
         """
-        response = self._request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['available_to_play']}").json()
+        response = await self._request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['available_to_play']}").json()
         return (
             User.from_account_id(
                 request_builder=self._request_builder,
@@ -177,7 +177,7 @@ class Client:
             for account_id_dict in response["settings"]
         )
 
-    def blocked_list(self) -> Iterator[User]:
+    async def blocked_list(self) -> Iterator[User]:
         """Gets the blocked list and return their account ids.
 
         :returns: Al blocked users on your block list.
@@ -192,7 +192,7 @@ class Client:
                 ...
 
         """
-        response = self._request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['blocked_users']}").json()
+        response = await self._request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['blocked_users']}").json()
         return (
             User.from_account_id(
                 request_builder=self._request_builder,
@@ -201,7 +201,7 @@ class Client:
             for account_id in response["blockList"]
         )
 
-    def get_groups(self, limit: int = 200, offset: int = 0) -> Iterator[Group]:
+    async def get_groups(self, limit: int = 200, offset: int = 0) -> Iterator[Group]:
         """Gets all the groups you have participated in.
 
         :param limit: The number of groups to receive.
@@ -215,7 +215,7 @@ class Client:
         """
         param = {"includeFields": "members", "limit": limit, "offset": offset}
 
-        response = self._request_builder.get(url=f"{BASE_PATH['gaming_lounge']}{API_PATH['my_groups']}", params=param).json()
+        response = await self._request_builder.get(url=f"{BASE_PATH['gaming_lounge']}{API_PATH['my_groups']}", params=param).json()
 
         return (
             Group(

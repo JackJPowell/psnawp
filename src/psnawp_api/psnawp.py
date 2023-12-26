@@ -12,6 +12,7 @@ from psnawp_api.models.search import Search
 from psnawp_api.models.user import User
 from psnawp_api.utils import request_builder
 
+
 logging_level = logging.INFO
 
 
@@ -26,6 +27,12 @@ class PSNAWP:
         psnawp = PSNAWP('<64 character npsso code>')
 
     """
+    @classmethod
+    async def create(cls, npsso_cookie: str, *, accept_language: str = "en-US", country: str = "US"):
+        self = cls(npsso_cookie, accept_language = accept_language, country = country)
+        authy = await authenticator.Authenticator.create(npsso_cookie)
+        self._request_builder = await request_builder.RequestBuilder(authy, accept_language, country)
+        return self
 
     def __init__(self, npsso_cookie: str, *, accept_language: str = "en-US", country: str = "US"):
         """Constructor Method. Takes the npsso_cookie and creates instance of ``request_builder.RequestBuilder`` which is used later in code for HTTPS requests.
@@ -37,7 +44,8 @@ class PSNAWP:
         :raises: ``PSNAWPAuthenticationError`` If npsso code is expired or is incorrect.
 
         """
-        self._request_builder = request_builder.RequestBuilder(authenticator.Authenticator(npsso_cookie), accept_language, country)
+        #authy = authenticator.Authenticator.create(npsso_cookie)
+        #self._request_builder = request_builder.RequestBuilder(authy, accept_language, country)
 
     def me(self) -> Client:
         """Creates a new client object (your account).
@@ -62,7 +70,7 @@ class PSNAWP:
     def user(self, *, account_id: str) -> User:
         ...
 
-    def user(self, **kwargs: Any) -> User:
+    async def user(self, **kwargs: Any) -> User:
         """Creates a new user object using Online ID (GamerTag) or Account ID (PSN ID).
 
         .. note::
@@ -89,9 +97,9 @@ class PSNAWP:
         account_id: Optional[str] = kwargs.get("account_id")
 
         if account_id is not None:
-            return User.from_account_id(self._request_builder, account_id)
+            return await User.from_account_id(self._request_builder, account_id)
         elif online_id is not None:
-            return User.from_online_id(self._request_builder, online_id)
+            return await User.from_online_id(self._request_builder, online_id)
         else:
             raise PSNAWPIllegalArgumentError("You must provide at least online ID or account ID.")
 

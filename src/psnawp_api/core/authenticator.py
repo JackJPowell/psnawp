@@ -4,7 +4,7 @@ import time
 from typing import Any
 from urllib.parse import urlparse, parse_qs
 
-import requests
+import httpx
 
 from psnawp_api.core import psnawp_exceptions
 from psnawp_api.utils.endpoints import BASE_PATH, API_PATH
@@ -21,6 +21,12 @@ class Authenticator:
     }
     __AUTH_HEADER = {"Authorization": "Basic MDk1MTUxNTktNzIzNy00MzcwLTliNDAtMzgwNmU2N2MwODkxOnVjUGprYTV0bnRCMktxc1A="}
 
+    @classmethod
+    async def create(cls, npsso_cookie: str):
+        self = cls(npsso_cookie)
+        await self._authenticate()
+        return self
+
     def __init__(self, npsso_cookie: str):
         """Represents a single authentication to PSN API.
 
@@ -31,10 +37,10 @@ class Authenticator:
         """
         self._npsso_token = npsso_cookie
         self._auth_properties: dict[str, Any] = {}
-        self._authenticate()
+        #self._authenticate()
         self._authenticator_logger = create_logger(__file__)
 
-    def obtain_fresh_access_token(self) -> Any:
+    async def obtain_fresh_access_token(self) -> Any:
         """Gets a new access token from refresh token.
 
         :returns: access token
@@ -50,18 +56,20 @@ class Authenticator:
             "scope": Authenticator.__PARAMS["SCOPE"],
             "token_format": "jwt",
         }
-        response = requests.post(
-            f"{BASE_PATH['base_uri']}{API_PATH['access_token']}",
-            headers=Authenticator.__AUTH_HEADER,
-            data=data,
-        )
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{BASE_PATH['base_uri']}{API_PATH['access_token']}",
+                headers=Authenticator.__AUTH_HEADER,
+                data=data,
+            )
         self._auth_properties = response.json()
         self._auth_properties["access_token_expires_at"] = self._auth_properties["expires_in"] + time.time()
         if self._auth_properties["refresh_token_expires_in"] <= 60 * 60 * 24 * 3:
             self._authenticator_logger.warning("Warning: Your refresh token is going to expire in less than 3 days. Please renew you npsso token!")
         return self._auth_properties["access_token"]
 
-    def oauth_token(self, code: str) -> None:
+    async def oauth_token(self, code: str) -> None:
         """Obtain the access token using oauth code for the first time, after this the access token is obtained via refresh token.
 
         :param code: Code obtained using npsso code.
@@ -76,17 +84,18 @@ class Authenticator:
             "token_format": "jwt",
         }
 
-        response = requests.post(
-            f"{BASE_PATH['base_uri']}{API_PATH['access_token']}",
-            headers=Authenticator.__AUTH_HEADER,
-            data=data,
-        )
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{BASE_PATH['base_uri']}{API_PATH['access_token']}",
+                headers=Authenticator.__AUTH_HEADER,
+                data=data,
+            )
         self._auth_properties = response.json()
         self._auth_properties["access_token_expires_at"] = self._auth_properties["expires_in"] + time.time()
         if self._auth_properties["refresh_token_expires_in"] <= 60 * 60 * 24 * 3:
             self._authenticator_logger.warning("Warning: Your refresh token is going to expire in less than 3 days. Please renew you npsso token!")
 
-    def _authenticate(self) -> None:
+    async def _authenticate(self) -> None:
         """Authenticate using the npsso code provided in the constructor.
 
         Obtains the access code and the refresh code. Access code lasts about 1 hour. While the refresh code lasts about 2 months. After 2 months a new npsso
@@ -103,13 +112,15 @@ class Authenticator:
             "redirect_uri": Authenticator.__PARAMS["REDIRECT_URI"],
             "response_type": "code",
         }
-        response = requests.get(
-            f"{BASE_PATH['base_uri']}{API_PATH['oauth_code']}",
-            headers=cookies,
-            params=params,
-            allow_redirects=False,
-        )
-        response.raise_for_status()
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{BASE_PATH['base_uri']}{API_PATH['oauth_code']}",
+                headers=cookies,
+                params=params,
+                follow_redirects=False,
+            )
+            response.raise_for_status()
         location_url = response.headers["location"]
         parsed_url = urlparse(location_url)
         parsed_query = parse_qs(parsed_url.query)

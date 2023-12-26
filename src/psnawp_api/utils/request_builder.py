@@ -1,7 +1,8 @@
 import json
 from typing import Any
 
-import requests
+#import requests
+import httpx
 
 from psnawp_api.core.authenticator import Authenticator
 from psnawp_api.core.psnawp_exceptions import (
@@ -14,7 +15,7 @@ from psnawp_api.core.psnawp_exceptions import (
 )
 
 
-def response_checker(response: requests.Response) -> None:
+def response_checker(response: httpx.Response) -> None:
     """Checks the HTTP(S) response and re-raises them as PSNAWP Exceptions
 
     :param response: :class:`Response <Response>` object
@@ -58,7 +59,7 @@ class RequestBuilder:
             "Country": country,
         }
 
-    def get(self, **kwargs: Any) -> requests.Response:
+    async def get(self, **kwargs: Any) -> httpx.Response:
         """Handles the GET requests and returns the requests.Response object.
 
         :param kwargs: The query parameters to add to the request.
@@ -75,11 +76,12 @@ class RequestBuilder:
         params = kwargs.get("params")
         data = kwargs.get("data")
 
-        response = requests.get(url=kwargs["url"], headers=headers, params=params, data=data)
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url=kwargs["url"], headers=headers, params=params, data=data)
         response_checker(response)
         return response
 
-    def patch(self, **kwargs: Any) -> requests.Response:
+    async def patch(self, **kwargs: Any) -> httpx.Response:
         """Handles the POST requests and returns the requests.Response object.
 
         :param kwargs: The query parameters to add to the request.
@@ -96,12 +98,13 @@ class RequestBuilder:
         params = kwargs.get("params")
         data = kwargs.get("data")
 
-        response = requests.patch(url=kwargs["url"], headers=headers, data=data, params=params)
+        async with httpx.AsyncClient() as client:
+            response = await client.patch(url=kwargs["url"], headers=headers, data=data, params=params)
 
         response_checker(response)
         return response
 
-    def post(self, **kwargs: Any) -> requests.Response:
+    async def post(self, **kwargs: Any) -> httpx.Response:
         """Handles the POST requests and returns the requests.Response object.
 
         :param kwargs: The query parameters to add to the request.
@@ -117,13 +120,13 @@ class RequestBuilder:
 
         params = kwargs.get("params")
         data = kwargs.get("data")
-
-        response = requests.post(url=kwargs["url"], headers=headers, data=data, params=params)
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url=kwargs["url"], headers=headers, data=data, params=params)
 
         response_checker(response)
         return response
 
-    def multipart_post(self, **kwargs: Any) -> requests.Response:
+    async def multipart_post(self, **kwargs: Any) -> httpx.Response:
         """Handles the Multipart POST requests and returns the requests.Response object.
 
         :param kwargs: The query parameters to add to the request.
@@ -138,22 +141,22 @@ class RequestBuilder:
             headers = {**headers, **kwargs["headers"]}
 
         data = kwargs.get("data")
-
-        response = requests.post(
-            url=kwargs["url"],
-            headers=headers,
-            files={
-                kwargs["name"]: (
-                    None,
-                    json.dumps(data),
-                    "application/json; charset=utf-8",
-                )
-            },
-        )
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                url=kwargs["url"],
+                headers=headers,
+                files={
+                    kwargs["name"]: (
+                        None,
+                        json.dumps(data),
+                        "application/json; charset=utf-8",
+                    )
+                },
+            )
         response_checker(response)
         return response
 
-    def delete(self, **kwargs: Any) -> requests.Response:
+    async def delete(self, **kwargs: Any) -> httpx.Response:
         """Handles the DELETE requests and returns the requests.Response object.
 
         :param kwargs: The query parameters to add to the request.
@@ -170,6 +173,7 @@ class RequestBuilder:
         params = kwargs.get("params")
         data = kwargs.get("data")
 
-        response = requests.delete(url=kwargs["url"], headers=headers, params=params, data=data)
+        async with httpx.AsyncClient() as client:
+            response = await client.delete(url=kwargs["url"], headers=headers, params=params, data=data)
         response_checker(response)
         return response
