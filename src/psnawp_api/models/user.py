@@ -43,9 +43,10 @@ class User:
             response: dict[str, Any] = await request_builder.get(
                 url=f"{BASE_PATH['legacy_profile_uri']}{API_PATH['legacy_profile'].format(online_id=online_id)}",
                 params=query,
-            ).json()
-            account_id = response["profile"]["accountId"]
-            online_id = response["profile"].get("currentOnlineId") or response["profile"].get("onlineId")
+            )
+            json: dict[str, Any] = response.json()
+            account_id = json["profile"]["accountId"]
+            online_id = json["profile"].get("currentOnlineId") or json["profile"].get("onlineId")
             return cls(request_builder, online_id, account_id)
         except PSNAWPNotFound as not_found:
             raise PSNAWPNotFound(f"Online ID {online_id} does not exist.") from not_found

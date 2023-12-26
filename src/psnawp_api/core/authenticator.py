@@ -120,7 +120,7 @@ class Authenticator:
                 params=params,
                 follow_redirects=False,
             )
-            response.raise_for_status()
+            #response.raise_for_status()
         location_url = response.headers["location"]
         parsed_url = urlparse(location_url)
         parsed_query = parse_qs(parsed_url.query)

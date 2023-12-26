@@ -31,7 +31,7 @@ class PSNAWP:
     async def create(cls, npsso_cookie: str, *, accept_language: str = "en-US", country: str = "US"):
         self = cls(npsso_cookie, accept_language = accept_language, country = country)
         authy = await authenticator.Authenticator.create(npsso_cookie)
-        self._request_builder = await request_builder.RequestBuilder(authy, accept_language, country)
+        self._request_builder = request_builder.RequestBuilder(authy, accept_language, country)
         return self
 
     def __init__(self, npsso_cookie: str, *, accept_language: str = "en-US", country: str = "US"):

@@ -74,10 +74,10 @@ class RequestBuilder:
             headers = {**headers, **kwargs["headers"]}
 
         params = kwargs.get("params")
-        data = kwargs.get("data")
+        #data = kwargs.get("data")
 
         async with httpx.AsyncClient() as client:
-            response = await client.get(url=kwargs["url"], headers=headers, params=params, data=data)
+            response = await client.get(url=kwargs["url"], headers=headers, params=params)
         response_checker(response)
         return response
 
