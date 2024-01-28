@@ -68,7 +68,7 @@ class RequestBuilder:
         :rtype: requests.Response
 
         """
-        access_token = self.authenticator.obtain_fresh_access_token()
+        access_token = await self.authenticator.obtain_fresh_access_token()
         headers = {**self.default_headers, "Authorization": f"Bearer {access_token}"}
         if "headers" in kwargs.keys():
             headers = {**headers, **kwargs["headers"]}
@@ -90,7 +90,7 @@ class RequestBuilder:
         :rtype: requests.Response
 
         """
-        access_token = self.authenticator.obtain_fresh_access_token()
+        access_token = await self.authenticator.obtain_fresh_access_token()
         headers = {**self.default_headers, "Authorization": f"Bearer {access_token}"}
         if "headers" in kwargs.keys():
             headers = {**headers, **kwargs["headers"]}
@@ -113,7 +113,7 @@ class RequestBuilder:
         :rtype: requests.Response
 
         """
-        access_token = self.authenticator.obtain_fresh_access_token()
+        access_token = await self.authenticator.obtain_fresh_access_token()
         headers = {**self.default_headers, "Authorization": f"Bearer {access_token}"}
         if "headers" in kwargs.keys():
             headers = {**headers, **kwargs["headers"]}
@@ -135,7 +135,7 @@ class RequestBuilder:
         :rtype: requests.Response
 
         """
-        access_token = self.authenticator.obtain_fresh_access_token()
+        access_token = await self.authenticator.obtain_fresh_access_token()
         headers = {**self.default_headers, "Authorization": f"Bearer {access_token}"}
         if "headers" in kwargs.keys():
             headers = {**headers, **kwargs["headers"]}
@@ -165,7 +165,7 @@ class RequestBuilder:
         :rtype: requests.Response
 
         """
-        access_token = self.authenticator.obtain_fresh_access_token()
+        access_token = await self.authenticator.obtain_fresh_access_token()
         headers = {**self.default_headers, "Authorization": f"Bearer {access_token}"}
         if "headers" in kwargs.keys():
             headers = {**headers, **kwargs["headers"]}

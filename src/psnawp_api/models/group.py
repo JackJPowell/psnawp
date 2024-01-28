@@ -16,6 +16,18 @@ from psnawp_api.utils.request_builder import RequestBuilder
 class Group:
     """The Group class manages PSN group endpoints related to messages (Group and Direct Messages)."""
 
+    @classmethod
+    async def from_id(cls, request_builder: RequestBuilder, group_id: str):
+        self = cls(request_builder, group_id = group_id, users = None)
+        await self.get_group_information()
+        return self
+    
+    @classmethod
+    async def from_users(cls, request_builder: RequestBuilder, users_list: [Iterator[User]]):
+        self = cls(request_builder, group_id = None, users = users_list)
+        await self._create_group()
+        return self
+    
     def __init__(
         self,
         request_builder: RequestBuilder,
@@ -44,13 +56,14 @@ class Group:
         self._request_builder = request_builder
         self.group_id = group_id
         self.users = users
+        self.information = {}
 
-        if self.group_id is not None:
-            self.get_group_information()
-        elif self.users is not None:
-            self._create_group()
+        # if self.group_id is not None:
+        #     self.get_group_information()
+        # elif self.users is not None:
+        #     self._create_group()
 
-    def _create_group(self) -> None:
+    async def _create_group(self) -> None:
         """Creates a new group if it doesn't exist. Doesn't work if user's privacy settings block invites.
 
         :raises: ``PSNAWPForbidden`` If you are Dming a user who has blocked you.
@@ -61,11 +74,12 @@ class Group:
             data = {"invitees": invitees}
 
             try:
-                response = self._request_builder.post(
+                response = await self._request_builder.post(
                     url=f"{BASE_PATH['gaming_lounge']}{API_PATH['create_group']}",
                     data=json.dumps(data),
-                ).json()
-                self.group_id = response["groupId"]
+                )
+                json1 = response.json()
+                self.group_id = json1["groupId"]
             except PSNAWPForbidden as forbidden:
                 raise PSNAWPForbidden("The group cannot be created because the user has either set messages to private or has blocked you.") from forbidden
 
@@ -94,7 +108,7 @@ class Group:
         except PSNAWPBadRequest as bad_req:
             raise PSNAWPBadRequest(f"The group name of Group ID {self.group_id} does cannot be changed. Group is either a dm or does not exist.") from bad_req
 
-    def get_group_information(self) -> dict[str, Any]:
+    async def get_group_information(self) -> dict[str, Any]:
         """Gets the group chat information such as about me, avatars, languages etc...
 
         :returns: A dict containing info similar to what is shown below:
@@ -113,16 +127,17 @@ class Group:
         }
 
         try:
-            response: dict[str, Any] = self._request_builder.get(
+            response: dict[str, Any] = await self._request_builder.get(
                 url=f"{BASE_PATH['gaming_lounge']}{API_PATH['group_members'].format(group_id=self.group_id)}",
                 params=param,
-            ).json()
+            )
+            self.information = response.json()
 
-            return response
+            return self.information
         except PSNAWPNotFound as not_found:
             raise PSNAWPNotFound(f"Group ID {self.group_id} does not exist.") from not_found
 
-    def send_message(self, message: str) -> dict[str, str]:
+    async def send_message(self, message: str) -> dict[str, str]:
         """Sends a message in the group.
 
         .. note::
@@ -145,12 +160,13 @@ class Group:
 
         data = {"messageType": 1, "body": message}
 
-        response: dict[str, str] = self._request_builder.post(
+        response: dict[str, str] = await self._request_builder.post(
             url=f"{BASE_PATH['gaming_lounge']}{API_PATH['send_group_message'].format(group_id=self.group_id)}",
             data=json.dumps(data),
-        ).json()
+        )
+        json1 = response.json()
 
-        return response
+        return json1
 
     def get_conversation(self, limit: int = 20) -> dict[str, Any]:
         """Gets the conversations in a group.

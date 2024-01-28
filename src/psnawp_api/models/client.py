@@ -20,6 +20,12 @@ from psnawp_api.utils.request_builder import RequestBuilder
 class Client:
     """The Client class provides the information and methods for the currently authenticated user."""
 
+    @classmethod
+    async def create(cls, request_builder: RequestBuilder):
+        self = cls(request_builder)
+        self._request_builder = request_builder
+        return self
+    
     def __init__(self, request_builder: RequestBuilder):
         """Initialize a Client instance.
 
@@ -46,8 +52,9 @@ class Client:
             print(client.online_id)
 
         """
-        response = await self._request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['profiles'].format(account_id=self.account_id)}").json()
-        online_id: str = response["onlineId"]
+        response = await self._request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['profiles'].format(account_id= await self.account_id)}")
+        json = response.json()
+        online_id: str = json["onlineId"]
         return online_id
 
     @property
@@ -63,8 +70,9 @@ class Client:
             print(client.account_id)
 
         """
-        response = await self._request_builder.get(url=f"{BASE_PATH['account_uri']}{API_PATH['my_account']}").json()
-        account_id: str = response["accountId"]
+        response = await self._request_builder.get(url=f"{BASE_PATH['account_uri']}{API_PATH['my_account']}")
+        json = response.json()
+        account_id: str = json["accountId"]
         return account_id
 
     async def get_profile_legacy(self) -> dict[str, Any]:
@@ -93,9 +101,10 @@ class Client:
         response: dict[str, Any] = await self._request_builder.get(
             url=f"{BASE_PATH['legacy_profile_uri']}{API_PATH['legacy_profile'].format(online_id=self.online_id)}",
             params=params,
-        ).json()
+        )
+        json = response.json()
 
-        return response
+        return json
 
     async def get_account_devices(self) -> list[dict[str, Any]]:
         """Gets the list of devices the client is logged into.
@@ -117,10 +126,10 @@ class Client:
             "includeFields": "device,systemData",
             "platform": "PS5,PS4,PS3,PSVita",
         }
-        response = await self._request_builder.get(url=f"{BASE_PATH['account_uri']}{API_PATH['my_account']}", params=params).json()
-
+        response = await self._request_builder.get(url=f"{BASE_PATH['account_uri']}{API_PATH['my_account']}", params=params)
+        json = response.json()
         # Just so mypy doesn't complain
-        account_devices: list[dict[str, Any]] = await response.get("accountDevices", [])
+        account_devices: list[dict[str, Any]] = await json.get("accountDevices", [])
         return account_devices
 
     async def friends_list(self, limit: int = 1000) -> Iterator[User]:
@@ -144,14 +153,25 @@ class Client:
         limit = min(1000, limit)
 
         params = {"limit": limit}
-        response = await self._request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['friends_list']}", params=params).json()
-        return (
-            User.from_account_id(
-                request_builder=self._request_builder,
-                account_id=account_id,
-            )
-            for account_id in response["friends"]
-        )
+        response = await self._request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['friends_list']}", params=params)
+        json = response.json()
+        user_list = []
+        
+        for account_id in json["friends"]:
+            user = await User.from_account_id(
+                 request_builder=self._request_builder,
+                 account_id=account_id,
+             )
+            user_list.append(user)
+        return user_list
+
+        # return (
+        #     await User.from_account_id(
+        #         request_builder=self._request_builder,
+        #         account_id=account_id,
+        #     )
+        #     for account_id in json["friends"]
+        # )
 
     async def available_to_play(self) -> Iterator[User]:
         """Gets the list of users on your "Notify when available" subscription list.
@@ -168,14 +188,25 @@ class Client:
                 ...
 
         """
-        response = await self._request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['available_to_play']}").json()
-        return (
-            User.from_account_id(
-                request_builder=self._request_builder,
-                account_id=account_id_dict["accountId"],
-            )
-            for account_id_dict in response["settings"]
-        )
+        response = await self._request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['available_to_play']}")
+        json = response.json()
+        user_list = []
+        
+        for account_id_dict in json["settings"]:
+            user = await User.from_account_id(
+                 request_builder=self._request_builder,
+                 account_id=account_id_dict["accountId"],
+             )
+            user_list.append(user)
+        return user_list
+        
+        # return (
+        #     User.from_account_id(
+        #         request_builder=self._request_builder,
+        #         account_id=account_id_dict["accountId"],
+        #     )
+        #     for account_id_dict in json["settings"]
+        # )
 
     async def blocked_list(self) -> Iterator[User]:
         """Gets the blocked list and return their account ids.
@@ -192,13 +223,14 @@ class Client:
                 ...
 
         """
-        response = await self._request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['blocked_users']}").json()
+        response = await self._request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['blocked_users']}")
+        json = response.json()
         return (
             User.from_account_id(
                 request_builder=self._request_builder,
                 account_id=account_id,
             )
-            for account_id in response["blockList"]
+            for account_id in json["blockList"]
         )
 
     async def get_groups(self, limit: int = 200, offset: int = 0) -> Iterator[Group]:
@@ -215,18 +247,26 @@ class Client:
         """
         param = {"includeFields": "members", "limit": limit, "offset": offset}
 
-        response = await self._request_builder.get(url=f"{BASE_PATH['gaming_lounge']}{API_PATH['my_groups']}", params=param).json()
+        response = await self._request_builder.get(url=f"{BASE_PATH['gaming_lounge']}{API_PATH['my_groups']}", params=param)
+        json = response.json()
+        groups = []
 
-        return (
-            Group(
-                request_builder=self._request_builder,
-                group_id=group_info["groupId"],
-                users=None,
-            )
-            for group_info in response["groups"]
-        )
+        for group_info in json["groups"]:
+            group = await Group.from_id(request_builder=self._request_builder,
+                group_id=group_info["groupId"])
+            await group.get_group_information()
+            groups.append(group)
+        return groups
+        # return (
+        #     Group.from_id(
+        #         request_builder=self._request_builder,
+        #         group_id=group_info["groupId"],
+        #         users=None,
+        #     )
+        #     for group_info in json["groups"]
+        # )
 
-    def trophy_summary(self) -> TrophySummary:
+    async def trophy_summary(self) -> TrophySummary:
         """Retrieve an overall summary of the number of trophies earned for a user broken down by
 
         - type
@@ -243,7 +283,7 @@ class Client:
             print(client.trophy_summary())
 
         """
-        return TrophySummary.from_endpoint(request_builder=self._request_builder, account_id="me")
+        return await TrophySummary.from_endpoint(request_builder=self._request_builder, account_id="me")
 
     def trophy_titles(self, limit: Optional[int] = None) -> Iterator[TrophyTitle]:
         """Retrieve all game titles associated with an account, and a summary of trophies earned from them.
@@ -376,7 +416,7 @@ class Client:
                 np_communication_id=np_communication_id,
             ).user_trophy_groups_summary_with_metadata(account_id="me", platform=platform)
 
-    def title_stats(self, *, limit: Optional[int] = None, offset: int = 0, page_size: int = 200) -> TitleStatsListing:
+    async def title_stats(self, *, limit: Optional[int] = None, offset: int = 0, page_size: int = 200) -> TitleStatsListing:
         """Retrieve a list of titles with their stats and basic meta-data
 
         :param limit: Limit of titles returned.

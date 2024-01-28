@@ -9,6 +9,7 @@ from psnawp_api.models.client import Client
 from psnawp_api.models.game_title import GameTitle
 from psnawp_api.models.group import Group
 from psnawp_api.models.search import Search
+from psnawp_api.models.trophies.trophy_titles import TrophyTitles
 from psnawp_api.models.user import User
 from psnawp_api.utils import request_builder
 
@@ -30,8 +31,8 @@ class PSNAWP:
     @classmethod
     async def create(cls, npsso_cookie: str, *, accept_language: str = "en-US", country: str = "US"):
         self = cls(npsso_cookie, accept_language = accept_language, country = country)
-        authy = await authenticator.Authenticator.create(npsso_cookie)
-        self._request_builder = request_builder.RequestBuilder(authy, accept_language, country)
+        self.authy = await authenticator.Authenticator.create(npsso_cookie)
+        self._request_builder = request_builder.RequestBuilder(self.authy, accept_language, country)
         return self
 
     def __init__(self, npsso_cookie: str, *, accept_language: str = "en-US", country: str = "US"):
@@ -47,7 +48,7 @@ class PSNAWP:
         #authy = authenticator.Authenticator.create(npsso_cookie)
         #self._request_builder = request_builder.RequestBuilder(authy, accept_language, country)
 
-    def me(self) -> Client:
+    async def me(self) -> Client:
         """Creates a new client object (your account).
 
         :returns: Client Object
@@ -60,7 +61,7 @@ class PSNAWP:
             client = psnawp.me()
 
         """
-        return Client(self._request_builder)
+        return await Client.create(self._request_builder)
 
     @overload
     def user(self, *, online_id: str) -> User:
@@ -145,7 +146,7 @@ class PSNAWP:
     def group(self, *, users_list: Iterator[User]) -> Group:
         ...
 
-    def group(self, **kwargs: Any) -> Group:
+    async def group(self, **kwargs: Any) -> Group:
         """Creates a group object from a Group ID or from list of users.
 
         .. warning::
@@ -170,7 +171,8 @@ class PSNAWP:
 
         if (group_id and users) or not (group_id or users):
             raise PSNAWPIllegalArgumentError("You provide at least Group Id or Users, and not both.")
-        return Group(self._request_builder, group_id=group_id, users=users)
+        group = await Group.from_users(self._request_builder, users_list=users)
+        return group
 
     def search(self) -> Search:
         """Creates a new search object
@@ -179,3 +181,6 @@ class PSNAWP:
 
         """
         return Search(self._request_builder)
+
+    def trophy_titles(self, account_id: str = "me"):
+        return TrophyTitles(self._request_builder, account_id)

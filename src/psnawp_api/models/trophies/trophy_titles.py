@@ -74,7 +74,7 @@ class TrophyTitles:
         self._request_builder = request_builder
         self._account_id = account_id
 
-    def get_trophy_titles(self, limit: Optional[int]) -> Iterator[TrophyTitle]:
+    async def get_trophy_titles(self, limit: Optional[int]) -> Iterator[TrophyTitle]:
         """Retrieve all game titles associated with an account, and a summary of trophies earned from them.
 
         :param limit: Limit of titles returned, None means to return all trophy titles.
@@ -87,18 +87,20 @@ class TrophyTitles:
 
         """
         offset = 0
+        titles = []
         limit_per_request = min(limit, 800) if limit is not None else 800
         while True:
             params = {"limit": limit_per_request, "offset": offset}
-            response = self._request_builder.get(
+            response_temp = await self._request_builder.get(
                 url=f"{BASE_PATH['trophies']}{API_PATH['trophy_titles'].format(account_id=self._account_id)}",
                 params=params,
-            ).json()
+            )
+            response = response_temp.json()
 
             per_page_items = 0
             trophy_titles: list[dict[Any, Any]] = response.get("trophyTitles")
             for trophy_title in trophy_titles:
-                title_trophy_sum = TrophyTitle(
+                title_trophy = TrophyTitle(
                     total_items_count=response.get("totalItemCount"),
                     np_service_name=trophy_title.get("npServiceName"),
                     np_communication_id=trophy_title.get("npCommunicationId"),
@@ -131,9 +133,11 @@ class TrophyTitles:
                     np_title_id=None,
                     rarest_trophies=Trophy.from_trophies_list(trophy_title.get("rarestTrophies")),
                 )
-                yield title_trophy_sum
+                #yield title_trophy_sum
                 per_page_items += 1
+                titles.append(title_trophy)
 
+            return titles
             if limit is not None:
                 limit -= per_page_items
                 limit_per_request = min(limit, 800)
@@ -147,7 +151,7 @@ class TrophyTitles:
             if offset <= 0:
                 break
 
-    def get_trophy_summary_for_title(self, title_ids: list[str]) -> Iterator[TrophyTitle]:
+    async def get_trophy_summary_for_title(self, title_ids: list[str]) -> Iterator[TrophyTitle]:
         """Retrieve a summary of the trophies earned by a user for specific titles.
 
         :param title_ids: Unique ID of the title
@@ -160,15 +164,17 @@ class TrophyTitles:
 
         """
         params = {"npTitleIds": ",".join(title_ids)}
-        response = self._request_builder.get(
+        response = await self._request_builder.get(
             url=f"{BASE_PATH['trophies']}{API_PATH['trophy_titles_for_title'].format(account_id=self._account_id)}",
             params=params,
-        ).json()
+        )
+        json1 = response.json()
+        titles = []
 
-        for title in response.get("titles"):
+        for title in json1.get("titles"):
             for trophy_title in title.get("trophyTitles"):
-                title_trophy_sum = TrophyTitle(
-                    total_items_count=response.get("totalItemCount"),
+                title_trophy = TrophyTitle(
+                    total_items_count=json1.get("totalItemCount"),
                     np_service_name=trophy_title.get("npServiceName"),
                     np_communication_id=trophy_title.get("npCommunicationId"),
                     trophy_set_version=trophy_title.get("trophySetVersion"),
@@ -196,10 +202,11 @@ class TrophyTitles:
                     np_title_id=title.get("npTitleId"),
                     rarest_trophies=Trophy.from_trophies_list(trophy_title.get("rarestTrophies")),
                 )
-                yield title_trophy_sum
+                titles.append(title_trophy)
+                return titles
 
     @staticmethod
-    def get_np_communication_id(request_builder: RequestBuilder, title_id: str, account_id: str) -> str:
+    async def get_np_communication_id(request_builder: RequestBuilder, title_id: str, account_id: str) -> str:
         """Returns the np communication id of title. This is required for requesting detail about a titles trophies.
 
         .. note::
@@ -222,15 +229,16 @@ class TrophyTitles:
         params = {"npTitleIds": f"{title_id},"}
 
         try:
-            response = request_builder.get(
+            response = await request_builder.get(
                 url=f"{BASE_PATH['trophies']}{API_PATH['trophy_titles_for_title'].format(account_id=account_id)}",
                 params=params,
-            ).json()
+            )
+            json1 = response.json()
         except (PSNAWPBadRequest, PSNAWPNotFound) as bad_req:
             raise PSNAWPNotFound(f"Could not find a Video Game with Title: {title_id}") from bad_req
 
-        if len(response.get("titles")[0].get("trophyTitles")) == 0:
+        if len(json1.get("titles")[0].get("trophyTitles")) == 0:
             raise PSNAWPNotFound(f"Could not find a Video Game with Title: {title_id}. Most likely the user doesn't own the game.")
 
-        np_comm_id: str = response.get("titles")[0].get("trophyTitles")[0].get("npCommunicationId", title_id)
+        np_comm_id: str = json1.get("titles")[0].get("trophyTitles")[0].get("npCommunicationId", title_id)
         return np_comm_id

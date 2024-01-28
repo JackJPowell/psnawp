@@ -55,7 +55,7 @@ class GameTitle:
         else:
             self.np_communication_id = np_communication_id
 
-    def get_details(self) -> list[dict[str, Any]]:
+    async def get_details(self) -> list[dict[str, Any]]:
         """Get game details such as full name, description, genre, promotional videos/images, etc...
 
         :returns: A list of dicts containing info similar to what is shown below (Not all values are shown because of space limitations):
@@ -68,10 +68,11 @@ class GameTitle:
 
         param = {"age": 99, "country": "US", "language": "en-US"}
 
-        response: list[dict[str, Any]] = self._request_builder.get(
+        response_temp: list[dict[str, Any]] = await self._request_builder.get(
             url=f"{BASE_PATH['game_titles']}{API_PATH['title_concept'].format(title_id=self.title_id)}",
             params=param,
-        ).json()
+        )
+        response = response_temp.json()
 
         return response
 

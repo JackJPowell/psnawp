@@ -129,4 +129,4 @@ class Authenticator:
                 raise psnawp_exceptions.PSNAWPAuthenticationError("Your npsso code has expired or is incorrect. Please generate a new code!")
             else:
                 raise psnawp_exceptions.PSNAWPAuthenticationError("Something went wrong while authenticating")
-        self.oauth_token(parsed_query["code"][0])
+        await self.oauth_token(parsed_query["code"][0])

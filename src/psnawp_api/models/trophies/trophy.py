@@ -103,7 +103,7 @@ class Trophy:
         return trophy_list
 
 
-def _get_trophy_from_endpoint(
+async def _get_trophy_from_endpoint(
     endpoint: str,
     request_builder: RequestBuilder,
     platform: Literal["PS Vita", "PS3", "PS4", "PS5"],
@@ -118,10 +118,11 @@ def _get_trophy_from_endpoint(
 
     while True:
         try:
-            response = request_builder.get(
+            response_temp = await request_builder.get(
                 url=f"{BASE_PATH['trophies']}{endpoint}",
                 params=params,
-            ).json()
+            )
+            response = response_temp.json()
         except PSNAWPNotFound as not_found:
             raise PSNAWPNotFound("The following user has no trophies for the given game title.") from not_found
         except PSNAWPForbidden as forbidden:
@@ -170,7 +171,7 @@ class TrophyBuilder:
         self._request_builder = request_builder
         self.np_communication_id: str = np_communication_id
 
-    def game_trophies(
+    async def game_trophies(
         self,
         platform: Literal["PS Vita", "PS3", "PS4", "PS5"],
         trophy_group_id: str,
@@ -192,7 +193,7 @@ class TrophyBuilder:
         :raises: ``PSNAWPNotFound`` if you don't have any trophies for that game.
 
         """
-        return _get_trophy_from_endpoint(
+        return await _get_trophy_from_endpoint(
             API_PATH["trophies_for_title"].format(
                 np_communication_id=self.np_communication_id,
                 trophy_group_id=trophy_group_id,
@@ -202,7 +203,7 @@ class TrophyBuilder:
             limit,
         )
 
-    def earned_game_trophies(
+    async def earned_game_trophies(
         self,
         account_id: str,
         platform: Literal["PS Vita", "PS3", "PS4", "PS5"],
@@ -229,7 +230,7 @@ class TrophyBuilder:
         :raises: ``PSNAWPForbidden`` If the user's profile is private
 
         """
-        return _get_trophy_from_endpoint(
+        return await _get_trophy_from_endpoint(
             API_PATH["trophies_earned_for_title"].format(
                 account_id=account_id,
                 np_communication_id=self.np_communication_id,

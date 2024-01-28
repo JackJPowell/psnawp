@@ -24,6 +24,12 @@ class User:
     """This class will contain the information about the PSN ID you passed in when creating object"""
 
     @classmethod
+    async def create(cls, request_builder: RequestBuilder, online_id: str=  "", account_id: str = ""):
+        """Factory Method for User Class"""
+        self = cls(request_builder, online_id, account_id)
+        return self
+
+    @classmethod
     async def from_online_id(cls, request_builder: RequestBuilder, online_id: str) -> User:
         """Creates the User instance from online ID and returns the instance.
 
@@ -67,8 +73,9 @@ class User:
 
         """
         try:
-            response: dict[str, Any] = await request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['profiles'].format(account_id=account_id)}").json()
-            return cls(request_builder, response["onlineId"], account_id)
+            response: dict[str, Any] = await request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['profiles'].format(account_id=account_id)}")
+            json = response.json()
+            return cls(request_builder, json["onlineId"], account_id)
         except PSNAWPBadRequest as bad_request:
             raise PSNAWPNotFound(f"Account ID {account_id} does not exist.") from bad_request
 
@@ -118,8 +125,9 @@ class User:
 
         """
 
-        response: dict[str, Any] = await self._request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['profiles'].format(account_id=self.account_id)}").json()
-        return response
+        response: dict[str, Any] = await self._request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['profiles'].format(account_id=self.account_id)}")
+        json = response.json()
+        return json
 
     async def get_presence(self) -> dict[str, Any]:
         """Gets the presences of a user. If the profile is private
@@ -144,8 +152,9 @@ class User:
             response: dict[str, Any] = await self._request_builder.get(
                 url=f"{BASE_PATH['profile_uri']}/{self.account_id}{API_PATH['basic_presences']}",
                 params=params,
-            ).json()
-            return response
+            )
+            json: dict[str, Any] = response.json()
+            return json
         except PSNAWPForbidden as forbidden:
             raise PSNAWPForbidden(f"You are not allowed to check the presence of user {self.online_id}") from forbidden
 
@@ -167,8 +176,9 @@ class User:
         """
         response: dict[Any, Any] = await self._request_builder.get(
             url=f"{BASE_PATH['profile_uri']}{API_PATH['friends_summary'].format(account_id=self.account_id)}"
-        ).json()
-        return response
+        )
+        json = response.json()
+        return json
 
     async def is_blocked(self) -> bool:
         """Checks if the user is blocked by you
@@ -182,8 +192,9 @@ class User:
             print(user_example.is_blocked())
 
         """
-        response = await self._request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['blocked_users']}").json()
-        return self.account_id in response["blockList"]
+        response = await self._request_builder.get(url=f"{BASE_PATH['profile_uri']}{API_PATH['blocked_users']}")
+        json = response.json()
+        return self.account_id in json["blockList"]
 
     def trophy_summary(self) -> TrophySummary:
         """Retrieve an overall summary of the number of trophies earned for a user broken down by
