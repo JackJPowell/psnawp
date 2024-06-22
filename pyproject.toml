@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "PSNAWP_ASYNC"
-version = "0.0.5"
-description = "Async Python API Wrapper for PlayStation Network API"
+name = "PSNAWP-HA"
+version = "0.1.0"
+description = "Python API Wrapper for PlayStation Network API with Home Assistant Support"
 authors = ["jackjpowell <jackjpowell@gmail.com>"]
 license = "MIT"
 readme = "README.md"
