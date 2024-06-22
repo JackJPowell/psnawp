@@ -1,13 +1,10 @@
 [tool.poetry]
-name = "PSNAWP"
-version = "2.0.0"
-description = "Python API Wrapper for PlayStation Network API"
-authors = ["isFakeAccount <trevorphillips@gmx.us>"]
+name = "PSNAWP_ASYNC"
+version = "0.0.5"
+description = "Async Python API Wrapper for PlayStation Network API"
+authors = ["jackjpowell <jackjpowell@gmail.com>"]
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/isFakeAccount/psnawp"
-repository = "https://github.com/isFakeAccount/psnawp"
-documentation = "https://psnawp.readthedocs.io/en/latest/"
 keywords = ["PSN", "PlayStation"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -25,7 +22,7 @@ packages = [{ include = "psnawp_api", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-attrs = "23.1.0"
+attrs = "^23.1.0"
 requests = "^2.31.0"
 typing-extensions = "^4.11.0"
 
