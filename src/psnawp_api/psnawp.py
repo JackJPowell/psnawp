@@ -7,6 +7,7 @@ from psnawp_api.core import Authenticator, PSNAWPIllegalArgumentError, RequestBu
 from psnawp_api.models import Client, GameTitle, Group, SearchDomain, UniversalSearch, User
 from psnawp_api.models.listing import PaginationArguments
 from psnawp_api.models.search import SearchResult
+from psnawp_api.models.trophies import TrophyTitle
 
 psnawp_logger = getLogger("psnawp")
 
@@ -192,3 +193,6 @@ class PSNAWP:
             return UniversalSearch(authenticator=self.authenticator, pagination_args=pg_args, search_query=search_query).search_full_game()
         else:
             return UniversalSearch(authenticator=self.authenticator, pagination_args=pg_args, search_query=search_query).search_add_onns()
+
+    def trophy_titles(self, account_id: str = "me"):
+        return TrophyTitles(self._request_builder, account_id)
