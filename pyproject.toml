@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "PSNAWP-HA"
-version = "2.1.1"
+version = "2.1.2"
 description = "Python API Wrapper for PlayStation Network API with Home Assistant Support"
 authors = ["jackjpowell <jackjpowell@gmail.com>"]
 license = "MIT"
@@ -25,7 +25,7 @@ packages = [{ include = "psnawp_api", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-attrs = "^24.2.0"
+attrs = ">=23.2.0, *"
 requests = "^2.32.3"
 typing-extensions = "^4.12.2"
 requests-ratelimiter = "^0.7.0"
