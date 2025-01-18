@@ -23,7 +23,9 @@ class PlaystationNetworkData:
     registered_platforms: list[str]
 
 class PlaystationNetwork:
-    """Helper Class to return playstation network data in an easy to use structure"""
+    """Helper Class to return playstation network data in an easy to use structure
+
+       :raises PSNAWPAuthenticationError: If npsso code is expired or is incorrect. """
     def __init__(self, npsso:str):
         self.psn = PSNAWP(npsso)
         self.client = self.psn.me()
