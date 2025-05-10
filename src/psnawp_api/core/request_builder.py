@@ -6,19 +6,19 @@ from http import HTTPStatus
 from logging import getLogger
 from typing import TYPE_CHECKING, Any, TypeAlias, TypedDict, cast
 
-from pyrate_limiter import BucketFullException, Duration, Limiter, RequestRate, SQLiteBucket
+from pyrate_limiter import BucketFullException, Duration, Limiter, Rate, SQLiteBucket
 from requests import session
 from typing_extensions import NotRequired, Unpack
 
 from psnawp_api.core.psnawp_exceptions import (
-    PSNAWPBadRequestError,
+    PSNAWPBadRequest,
     PSNAWPClientError,
-    PSNAWPForbiddenError,
-    PSNAWPNotAllowedError,
-    PSNAWPNotFoundError,
+    PSNAWPForbidden,
+    PSNAWPNotAllowed,
+    PSNAWPNotFound,
     PSNAWPServerError,
-    PSNAWPTooManyRequestsError,
-    PSNAWPUnauthorizedError,
+    PSNAWPTooManyRequests,
+    PSNAWPUnauthorized,
 )
 
 if TYPE_CHECKING:
@@ -56,17 +56,17 @@ def response_checker(response: Response) -> None:
 
     """
     if response.status_code == HTTPStatus.BAD_REQUEST:
-        raise PSNAWPBadRequestError(response.text)
+        raise PSNAWPBadRequest(response.text)
     if response.status_code == HTTPStatus.UNAUTHORIZED:
-        raise PSNAWPUnauthorizedError(response.text)
+        raise PSNAWPUnauthorized(response.text)
     if response.status_code == HTTPStatus.FORBIDDEN:
-        raise PSNAWPForbiddenError(response.text)
+        raise PSNAWPForbidden(response.text)
     if response.status_code == HTTPStatus.NOT_FOUND:
-        raise PSNAWPNotFoundError(response.text)
+        raise PSNAWPNotFound(response.text)
     if response.status_code == HTTPStatus.METHOD_NOT_ALLOWED:
-        raise PSNAWPNotAllowedError(response.text)
+        raise PSNAWPNotAllowed(response.text)
     if response.status_code == HTTPStatus.TOO_MANY_REQUESTS:
-        raise PSNAWPTooManyRequestsError(response.text)
+        raise PSNAWPTooManyRequests(response.text)
     if HTTPStatus.BAD_REQUEST <= response.status_code < HTTPStatus.INTERNAL_SERVER_ERROR:
         raise PSNAWPClientError(response.text)
     if response.status_code >= HTTPStatus.INTERNAL_SERVER_ERROR:
@@ -161,13 +161,14 @@ class RequestBuilder:
             kwargs.get("data"),
         )
 
-        psn_api_rate = RequestRate(limit=300, interval=Duration.MINUTE * 15)
-        limiter = Limiter(psn_api_rate, bucket_class=SQLiteBucket)
+        psn_api_rate = [Rate(limit=300, interval=Duration.MINUTE * 15)]
+        bucket = SQLiteBucket.init_from_file(psn_api_rate)
+        limiter = Limiter(bucket)
         try:
             limiter.try_acquire("psn_data")
         except BucketFullException as ex:
             request_builder_logger.exception()
-            raise PSNAWPTooManyRequestsError("Reached maximum requests for home data. Please try again later.") from ex
+            raise PSNAWPTooManyRequests("Reached maximum requests for home data. Please try again later.") from ex
         response = self.session.request(method=method, **kwargs)
         request_builder_logger.debug(
             "Received response: status_code=%d, headers=%s, body=%s",
